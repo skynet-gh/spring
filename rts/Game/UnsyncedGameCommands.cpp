@@ -103,6 +103,7 @@
 #include "System/Sound/ISound.h"
 #include "System/Sound/ISoundChannels.h"
 #include "System/Sync/DumpState.h"
+#include "System/Input/MouseInputHelper.h"
 
 #include <SDL_events.h>
 #include <SDL_video.h>
@@ -2139,7 +2140,20 @@ public:
 	}
 };
 
-
+class SwapMouseButtonsActionExecutor : public IUnsyncedActionExecutor {
+public:
+	SwapMouseButtonsActionExecutor() : IUnsyncedActionExecutor("SwapMouseButtons", "Swaps left and right mouse buttons") {
+	}
+	bool Execute(const UnsyncedAction& action) const final {
+		if (action.GetArgs().empty()) {
+			MouseInputHelper::Toggle();
+		}
+		else {
+			MouseInputHelper::Set(!!atoi(action.GetArgs().c_str()));
+		}
+		return true;
+	}
+};
 
 class ClockActionExecutor : public IUnsyncedActionExecutor {
 public:
@@ -2153,8 +2167,6 @@ public:
 		return true;
 	}
 };
-
-
 
 class CrossActionExecutor : public IUnsyncedActionExecutor {
 public:
@@ -3699,6 +3711,7 @@ void UnsyncedGameCommands::AddDefaultActionExecutors()
 	AddActionExecutor(AllocActionExecutor<DecreaseGUIOpacityActionExecutor>());
 	AddActionExecutor(AllocActionExecutor<ScreenShotActionExecutor>());
 	AddActionExecutor(AllocActionExecutor<GrabInputActionExecutor>());
+	AddActionExecutor(AllocActionExecutor<SwapMouseButtonsActionExecutor>());
 	AddActionExecutor(AllocActionExecutor<ClockActionExecutor>());
 	AddActionExecutor(AllocActionExecutor<CrossActionExecutor>());
 	AddActionExecutor(AllocActionExecutor<FPSActionExecutor>());

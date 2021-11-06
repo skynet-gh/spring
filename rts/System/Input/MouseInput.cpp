@@ -20,6 +20,7 @@
 
 
 #include "MouseInput.h"
+#include "MouseInputHelper.h"
 #include "InputHandler.h"
 
 #include "Game/UI/MouseHandler.h"
@@ -55,6 +56,7 @@ IMouseInput::IMouseInput(bool relModeWarp)
 	// the SDL patch in WarpPos
 	SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, relModeWarp? "1": "0");
 	#endif
+	MouseInputHelper::Init();
 }
 
 IMouseInput::~IMouseInput()
@@ -63,6 +65,7 @@ IMouseInput::~IMouseInput()
 	SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "0");
 	#endif
 	inputCon.disconnect();
+	MouseInputHelper::Kill();
 }
 
 
@@ -80,14 +83,14 @@ bool IMouseInput::HandleSDLMouseEvent(const SDL_Event& event)
 			mousepos = int2(event.button.x, event.button.y);
 
 			if (mouse != nullptr)
-				mouse->MousePress(mousepos.x, mousepos.y, event.button.button);
+				mouse->MousePress(mousepos.x, mousepos.y, MouseInputHelper::GetEmuSwapButtons(event.button.button));
 
 		} break;
 		case SDL_MOUSEBUTTONUP: {
 			mousepos = int2(event.button.x, event.button.y);
 
 			if (mouse != nullptr)
-				mouse->MouseRelease(mousepos.x, mousepos.y, event.button.button);
+				mouse->MouseRelease(mousepos.x, mousepos.y, MouseInputHelper::GetEmuSwapButtons(event.button.button));
 
 		} break;
 		case SDL_MOUSEWHEEL: {

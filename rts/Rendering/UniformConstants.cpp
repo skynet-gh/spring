@@ -23,6 +23,7 @@
 #include "Map/ReadMap.h"
 #include "System/Log/ILog.h"
 #include "System/SafeUtil.h"
+#include "System/Input/MouseInputHelper.h"
 #include "SDL2/SDL_mouse.h"
 
 bool UniformConstants::Supported()
@@ -155,9 +156,9 @@ void UniformConstants::UpdateParamsImpl(UniformParamsBuffer* updateBuffer)
 	};
 
 	updateBuffer->mouseStatus = (
-		mouse->buttons[SDL_BUTTON_LEFT  ].pressed << 0 |
-		mouse->buttons[SDL_BUTTON_MIDDLE].pressed << 1 |
-		mouse->buttons[SDL_BUTTON_RIGHT ].pressed << 2 |
+		mouse->buttons[MouseInputHelper::GetEmuSwapButtons(SDL_BUTTON_LEFT  )].pressed << 0 |
+		mouse->buttons[MouseInputHelper::GetEmuSwapButtons(SDL_BUTTON_MIDDLE)].pressed << 1 |
+		mouse->buttons[MouseInputHelper::GetEmuSwapButtons(SDL_BUTTON_RIGHT )].pressed << 2 |
 		mouse->offscreen                          << 3 |
 		mouse->mmbScroll                          << 4 |
 		mouse->locked                             << 5
