@@ -793,6 +793,7 @@ void CFontTexture::UpdateGlyphAtlasTexture()
 
 	// update texture atlas
 	glBindTexture(GL_TEXTURE_2D, glyphAtlasTextureID);
+	atlasUpdate.Save("atlasUpdate_" + std::to_string(glyphAtlasTextureID)+".png", true, true);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, texWidth, texHeight, 0, GL_RED, GL_UNSIGNED_BYTE, atlasUpdate.GetRawMem());
 	glBindTexture(GL_TEXTURE_2D, 0);
 #endif
