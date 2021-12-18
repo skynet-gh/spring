@@ -115,8 +115,9 @@ in vec4 col;
 void main() {
 	//vCol = col;
 	//vUV  = uv;
-	gl_Position = vec4(pos, 1.0); // TODO: move to UBO
-	gl_Position.z = 1.0;
+	//gl_Position = vec4(pos * 2.0 - 1.0, 1.0); // TODO: move to UBO
+	//gl_Position.z = 1.0;
+	gl_Position = gl_ModelViewProjectionMatrix * vec4(pos, 1.0);
 }
 )";
 
@@ -680,6 +681,74 @@ void CglFont::End() {
 
 		GLint progID = 0;
 		glGetIntegerv(GL_CURRENT_PROGRAM, &progID);
+
+		GLfloat matrix[16];
+		{
+			memset(&matrix[0], 0, sizeof(float) * 16);
+			glGetFloatv(GL_PROJECTION_MATRIX, matrix);
+			LOG("GL_PROJECTION_MATRIX : %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
+				matrix[0],
+				matrix[1],
+				matrix[2],
+				matrix[3],
+				matrix[4],
+				matrix[5],
+				matrix[6],
+				matrix[7],
+				matrix[8],
+				matrix[9],
+				matrix[10],
+				matrix[11],
+				matrix[12],
+				matrix[13],
+				matrix[14],
+				matrix[15]
+			);
+		}
+		{
+			memset(&matrix[0], 0, sizeof(float) * 16);
+			glGetFloatv(GL_MODELVIEW_MATRIX, matrix);
+			LOG("GL_MODELVIEW_MATRIX : %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
+				matrix[0],
+				matrix[1],
+				matrix[2],
+				matrix[3],
+				matrix[4],
+				matrix[5],
+				matrix[6],
+				matrix[7],
+				matrix[8],
+				matrix[9],
+				matrix[10],
+				matrix[11],
+				matrix[12],
+				matrix[13],
+				matrix[14],
+				matrix[15]
+			);
+		}
+		{
+			memset(&matrix[0], 0, sizeof(float) * 16);
+			glGetFloatv(GL_TEXTURE_MATRIX, matrix);
+			LOG("GL_TEXTURE_MATRIX : %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
+				matrix[0],
+				matrix[1],
+				matrix[2],
+				matrix[3],
+				matrix[4],
+				matrix[5],
+				matrix[6],
+				matrix[7],
+				matrix[8],
+				matrix[9],
+				matrix[10],
+				matrix[11],
+				matrix[12],
+				matrix[13],
+				matrix[14],
+				matrix[15]
+			);
+		}
 
 		curShader->Enable();
 
