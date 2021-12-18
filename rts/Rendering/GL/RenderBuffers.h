@@ -570,6 +570,7 @@ inline void TypedRenderBuffer<T>::DrawArrays(uint32_t mode, bool rewind)
 
 	assert(vao.GetIdRaw() > 0);
 	vao.Bind();
+	LOG("DrawArrays %u %lu %lu", mode, uint64_t(vbo->BufferElemOffset() + vboStartIndex), uint64_t(elemsCount));
 	glDrawArrays(mode, vbo->BufferElemOffset() + vboStartIndex, elemsCount);
 	vao.Unbind();
 
@@ -640,15 +641,15 @@ inline void TypedRenderBuffer<T>::InitVAO() const
 
 	vao.Unbind();
 
-	vbo->Unbind();
-
-	if (ebo)
-		ebo->Unbind();
-
 	//restore default state
 	for (const AttributeDef& ad : T::attributeDefs) {
 		glDisableVertexAttribArray(ad.index);
 	}
+
+	vbo->Unbind();
+
+	if (ebo)
+		ebo->Unbind();
 }
 
 //member template specializations

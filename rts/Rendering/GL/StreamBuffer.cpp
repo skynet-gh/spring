@@ -108,6 +108,7 @@ uint32_t IStreamBufferConcept::GetAlignedByteSize(uint32_t byteSizeRaw)
 
 void IStreamBufferConcept::Bind(uint32_t bindTarget) const
 {
+	assert(id > 0);
 	glBindBuffer(bindTarget > 0 ? bindTarget : target, id);
 }
 

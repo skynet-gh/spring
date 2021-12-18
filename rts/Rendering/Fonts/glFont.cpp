@@ -18,7 +18,7 @@
 
 #undef GetCharWidth // winapi.h
 
-#define INDEXED_FONTS_RENDERING
+//#define INDEXED_FONTS_RENDERING
 
 // should be enough to hold all data for a given frame
 //constexpr size_t NUM_BUFFER_ELEMS = (1 << 17);
@@ -109,13 +109,14 @@ in vec3 pos;
 in vec2 uv;
 in vec4 col;
 
-out vec4 vCol;
-out vec2 vUV;
+//out vec4 vCol;
+//out vec2 vUV;
 
 void main() {
-	vCol = col;
-	vUV  = uv;
-	gl_Position = gl_ModelViewProjectionMatrix * vec4(pos, 1.0); // TODO: move to UBO
+	//vCol = col;
+	//vUV  = uv;
+	gl_Position = vec4(pos, 1.0); // TODO: move to UBO
+	gl_Position.z = 1.0;
 }
 )";
 
@@ -124,15 +125,16 @@ constexpr const char* fsFont130 = R"(
 
 uniform sampler2D tex;
 
-in vec4 vCol;
-in vec2 vUV;
+//in vec4 vCol;
+//in vec2 vUV;
 
 void main() {
-	vec2 texSize = vec2(textureSize(tex, 0));
+	//vec2 texSize = vec2(textureSize(tex, 0));
 
-	float alpha = texture(tex, vUV / texSize).x;
-	gl_FragColor = vec4(vCol.r, vCol.g, vCol.b, vCol.a * alpha);
-	gl_FragColor = vCol;
+	//float alpha = texture(tex, vUV / texSize).x;
+	//gl_FragColor = vec4(vCol.r, vCol.g, vCol.b, vCol.a * alpha);
+	//gl_FragColor = vCol;
+	gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
 }
 )";
 
@@ -222,8 +224,8 @@ CglFont::CglFont(const std::string& fontFile, int size, int _outlineWidth, float
 	textColor    = white;
 	outlineColor = darkOutline;
 
-	primaryBufferTC = TypedRenderBuffer<VA_TYPE_TC>(NUM_TRI_BUFFER_VERTS, NUM_TRI_BUFFER_ELEMS, IStreamBufferConcept::SB_BUFFERSUBDATA);
-	outlineBufferTC = TypedRenderBuffer<VA_TYPE_TC>(NUM_TRI_BUFFER_VERTS, NUM_TRI_BUFFER_ELEMS, IStreamBufferConcept::SB_BUFFERSUBDATA);
+	primaryBufferTC = TypedRenderBuffer<VA_TYPE_TC>(NUM_TRI_BUFFER_VERTS, NUM_TRI_BUFFER_ELEMS, IStreamBufferConcept::SB_MAPANDSYNC);
+	outlineBufferTC = TypedRenderBuffer<VA_TYPE_TC>(NUM_TRI_BUFFER_VERTS, NUM_TRI_BUFFER_ELEMS, IStreamBufferConcept::SB_MAPANDSYNC);
 
 	viewMatrix = DefViewMatrix();
 	projMatrix = DefProjMatrix();
@@ -608,6 +610,7 @@ void CglFont::CreateDefaultShader()
 		defShader->BindAttribLocation("col", 2);
 	}
 
+	defShader->Link();
 	defShader->Enable();
 	defShader->SetUniform("tex", 0);
 	defShader->Disable();
@@ -651,6 +654,7 @@ void CglFont::Begin(Shader::IProgramObject* shader) {
 
 	curShader = shader;
 	assert(curShader == defShader.get()); //TODO
+	//curShader = &TypedRenderBuffer<VA_TYPE_TC>::GetShader();
 }
 
 void CglFont::End() {
@@ -661,7 +665,7 @@ void CglFont::End() {
 	inBeginEndBlock = false;
 
 	{
-		glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT);
+		glPushAttrib(GL_ENABLE_BIT);
 		glDisable(GL_DEPTH_TEST);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -716,8 +720,9 @@ void CglFont::DrawBuffered(Shader::IProgramObject* shader)
 		// assume external shaders are never null and already bound
 		curShader = shader;
 		assert(curShader == defShader.get()); //TODO
+		//curShader = &TypedRenderBuffer<VA_TYPE_TC>::GetShader();
 
-		glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT);
+		glPushAttrib(GL_ENABLE_BIT);
 		glDisable(GL_DEPTH_TEST);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
