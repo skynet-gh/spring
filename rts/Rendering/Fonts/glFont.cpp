@@ -109,14 +109,12 @@ in vec3 pos;
 in vec2 uv;
 in vec4 col;
 
-//out vec4 vCol;
-//out vec2 vUV;
+out vec4 vCol;
+out vec2 vUV;
 
 void main() {
-	//vCol = col;
-	//vUV  = uv;
-	//gl_Position = vec4(pos * 2.0 - 1.0, 1.0); // TODO: move to UBO
-	//gl_Position.z = 1.0;
+	vCol = col;
+	vUV  = uv;
 	gl_Position = gl_ModelViewProjectionMatrix * vec4(pos, 1.0);
 }
 )";
@@ -126,16 +124,17 @@ constexpr const char* fsFont130 = R"(
 
 uniform sampler2D tex;
 
-//in vec4 vCol;
-//in vec2 vUV;
+in vec4 vCol;
+in vec2 vUV;
 
 void main() {
-	//vec2 texSize = vec2(textureSize(tex, 0));
+	vec2 texSize = vec2(textureSize(tex, 0));
 
-	//float alpha = texture(tex, vUV / texSize).x;
+	float alpha = texture(tex, vUV / texSize).x;
 	//gl_FragColor = vec4(vCol.r, vCol.g, vCol.b, vCol.a * alpha);
 	//gl_FragColor = vCol;
 	gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+	gl_FragColor.a *= alpha;
 }
 )";
 
