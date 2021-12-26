@@ -9,7 +9,7 @@
 #include <cmath>
 
 #include "Rendering/GL/myGL.h"
-#include "Rendering/GL/VertexArray.h"
+#include "Rendering/GL/RenderBuffers.h"
 #include "System/Log/ILog.h"
 #include "Lua/LuaParser.h"
 #include "Textures/Bitmap.h"
@@ -108,7 +108,7 @@ bool CIconHandler::AddIcon(
 
 		if ((ownTexture = !texName.empty() && bitmap.Load(texName))) {
 			texID = bitmap.CreateMipMapTexture();
-			
+
 			glBindTexture(GL_TEXTURE_2D, texID);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -220,7 +220,7 @@ unsigned int CIconHandler::GetDefaultTexture()
 //  CIcon
 //
 
-CIcon::CIcon() 
+CIcon::CIcon()
 {
 	CIconData* data = nullptr;
 
@@ -345,12 +345,20 @@ void CIconData::BindTexture() const
 
 
 
-void CIconData::DrawArray(CVertexArray* va, float x0, float y0, float x1, float y1, const unsigned char* c) const
+void CIconData::DrawArray(TypedRenderBuffer<VA_TYPE_2dTC>& rb, float x0, float y0, float x1, float y1, const unsigned char* c) const
 {
-	va->AddVertex2dTC(x0, y0, 0.0f, 0.0f, c);
-	va->AddVertex2dTC(x1, y0, 1.0f, 0.0f, c);
-	va->AddVertex2dTC(x1, y1, 1.0f, 1.0f, c);
-	va->AddVertex2dTC(x0, y1, 0.0f, 1.0f, c);
+	//triangle 1 {tl, tr, bl}
+	//triangle 2 {bl, tr, br}
+
+	rb.AddVertices({
+		{x0, y0, 0.0f, 0.0f, c}, //tl
+		{x1, y0, 1.0f, 0.0f, c}, //tr
+		{x0, y1, 0.0f, 1.0f, c}, //bl
+
+		{x0, y1, 0.0f, 1.0f, c}, //bl
+		{x1, y0, 1.0f, 0.0f, c}, //tr
+		{x1, y1, 1.0f, 1.0f, c}  //br
+	});
 }
 
 void CIconData::Draw(float x0, float y0, float x1, float y1) const

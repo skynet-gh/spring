@@ -9,8 +9,7 @@
 #include "Icon.h"
 #include "System/float3.h"
 #include "System/UnorderedMap.hpp"
-
-class CVertexArray;
+#include "Rendering/GL/RenderBuffersFwd.h"
 
 namespace icon {
 	class CIconData {
@@ -64,7 +63,7 @@ namespace icon {
 			}
 
 			void BindTexture() const;
-			void DrawArray(CVertexArray* va, float x0, float y0, float x1, float y1, const unsigned char* c) const;
+			void DrawArray(TypedRenderBuffer<VA_TYPE_2dTC>& rb, float x0, float y0, float x1, float y1, const unsigned char* c) const;
 			void Draw(float x0, float y0, float x1, float y1) const;
 			void Draw(const float3& botLeft, const float3& botRight, const float3& topLeft, const float3& topRight) const;
 

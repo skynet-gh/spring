@@ -15,7 +15,7 @@
 #include "Rendering/Env/IWater.h"
 #include "Rendering/FarTextureHandler.h"
 #include "Rendering/GL/glExtra.h"
-#include "Rendering/GL/VertexArray.h"
+#include "Rendering/GL/RenderBuffers.h"
 #include "Rendering/Shaders/ShaderHandler.h"
 #include "Rendering/Shaders/Shader.h"
 #include "Rendering/Env/IGroundDecalDrawer.h"
@@ -285,7 +285,8 @@ void CUnitDrawerLegacy::DrawUnitTrans(const CUnit* unit, uint32_t preList, uint3
 
 void CUnitDrawerLegacy::DrawUnitMiniMapIcons() const
 {
-	CVertexArray* va = GetVertexArray();
+	auto& rb = RenderBuffer::GetTypedRenderBuffer<VA_TYPE_2dTC>();
+	auto& sh = rb.GetShader();
 
 	for (const auto& [icon, units] : modelDrawerData->GetUnitsByIcon()) {
 
@@ -294,17 +295,16 @@ void CUnitDrawerLegacy::DrawUnitMiniMapIcons() const
 		if (units.empty())
 			continue;
 
-		va->Initialize();
-		va->EnlargeArrays(units.size() * 4, 0, VA_SIZE_2DTC);
 		icon->BindTexture();
 
 		for (const CUnit* unit : units) {
 			assert(unit->myIcon == icon);
-			DrawUnitMiniMapIcon(unit, va);
+			DrawUnitMiniMapIcon(unit, rb);
 		}
-
-		va->DrawArray2dTC(GL_QUADS);
 	}
+	sh.Enable();
+	rb.DrawArrays(GL_TRIANGLES);
+	sh.Disable();
 }
 
 void CUnitDrawerLegacy::DrawUnitIcons() const
@@ -345,10 +345,12 @@ void CUnitDrawerLegacy::DrawUnitIconsScreen() const
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glEnable(GL_ALPHA_TEST);
-	glAlphaFunc(GL_GREATER, 0.05f);
 
-	CVertexArray* va = GetVertexArray();
+	auto& rb = RenderBuffer::GetTypedRenderBuffer<VA_TYPE_2dTC>();
+	auto& sh = rb.GetShader();
+
+	sh.Enable();
+	sh.SetUniform("alphaCtrl", 0.05f, 1.0f, 0.0f, 0.0f); //test if > 0.05f;
 
 	for (const auto& [icon, units] : modelDrawerData->GetUnitsByIcon())
 	{
@@ -358,8 +360,6 @@ void CUnitDrawerLegacy::DrawUnitIconsScreen() const
 		if (units.empty())
 			continue;
 
-		va->Initialize();
-		va->EnlargeArrays(units.size() * 4, 0, VA_SIZE_2DTC);
 		icon->BindTexture();
 
 		for (const CUnit* unit : units)
@@ -375,11 +375,15 @@ void CUnitDrawerLegacy::DrawUnitIconsScreen() const
 			const unsigned short plosBits = (unit->losStatus[gu->myAllyTeam] & (LOS_PREVLOS | LOS_CONTRADAR));
 
 			assert(unit->myIcon == icon);
-			DrawIconScreenArray(unit, icon, !gu->spectatingFullView && closBits == 0 && plosBits != (LOS_PREVLOS | LOS_CONTRADAR), modelDrawerData->iconZoomDist, va);
+			DrawIconScreenArray(unit, icon, !gu->spectatingFullView && closBits == 0 && plosBits != (LOS_PREVLOS | LOS_CONTRADAR), modelDrawerData->iconZoomDist, rb);
 		}
 
-		va->DrawArray2dTC(GL_QUADS);
+		rb.DrawArrays(GL_TRIANGLES);
 	}
+
+	sh.SetUniform("alphaCtrl", 0.0f, 0.0f, 0.0f, 1.0f); //reset, always pass
+	sh.Disable();
+
 	glPopAttrib();
 }
 
@@ -630,20 +634,30 @@ void CUnitDrawerLegacy::DrawAlphaAIUnitBorder(const CUnitDrawerData::TempDrawUni
 	const float xsize = buildInfo.GetXSize() * (SQUARE_SIZE >> 1);
 	const float zsize = buildInfo.GetZSize() * (SQUARE_SIZE >> 1);
 
-	glColor4f(0.2f, 1, 0.2f, IModelDrawerState::alphaValues.w);
-	glDisable(GL_TEXTURE_2D);
-	glBegin(GL_LINE_STRIP);
-	glVertexf3(buildPos + float3(xsize, 1.0f, zsize));
-	glVertexf3(buildPos + float3(-xsize, 1.0f, zsize));
-	glVertexf3(buildPos + float3(-xsize, 1.0f, -zsize));
-	glVertexf3(buildPos + float3(xsize, 1.0f, -zsize));
-	glVertexf3(buildPos + float3(xsize, 1.0f, zsize));
-	glEnd();
+	auto& rb = RenderBuffer::GetTypedRenderBuffer<VA_TYPE_C>();
+	auto& sh = rb.GetShader();
+
+	GLint progID = 0;
+	glGetIntegerv(GL_CURRENT_PROGRAM, &progID);
+
+	const SColor col = SColor{ 0.2f, 1.0f, 0.2f, IModelDrawerState::alphaValues.w };
+
+	rb.AddVertices({
+		{buildPos + float3( xsize, 1.0f,  zsize), col},
+		{buildPos + float3(-xsize, 1.0f,  zsize), col},
+		{buildPos + float3(-xsize, 1.0f, -zsize), col},
+		{buildPos + float3( xsize, 1.0f, -zsize), col},
+		{buildPos + float3( xsize, 1.0f,  zsize), col}
+	});
+	rb.DrawArrays(GL_LINE_STRIP);
+
+	if (progID > 0)
+		glUseProgram(progID);
+
 	glColor4f(1.0f, 1.0f, 1.0f, IModelDrawerState::alphaValues.x);
-	glEnable(GL_TEXTURE_2D);
 }
 
-void CUnitDrawerLegacy::DrawUnitMiniMapIcon(const CUnit* unit, CVertexArray* va) const
+void CUnitDrawerLegacy::DrawUnitMiniMapIcon(const CUnit* unit, TypedRenderBuffer<VA_TYPE_2dTC>& rb) const
 {
 	if (unit->noMinimap)
 		return;
@@ -685,7 +699,7 @@ void CUnitDrawerLegacy::DrawUnitMiniMapIcon(const CUnit* unit, CVertexArray* va)
 	const float y0 = iconPos.z - iconSizeY;
 	const float y1 = iconPos.z + iconSizeY;
 
-	unit->myIcon->DrawArray(va, x0, y0, x1, y1, color);
+	unit->myIcon->DrawArray(rb, x0, y0, x1, y1, color);
 }
 
 void CUnitDrawerLegacy::DrawIcon(CUnit* unit, bool useDefaultIcon)
@@ -747,7 +761,7 @@ void CUnitDrawerLegacy::DrawIcon(CUnit* unit, bool useDefaultIcon)
 	iconData->Draw(vnn, vpn, vnp, vpp);
 }
 
-void CUnitDrawerLegacy::DrawIconScreenArray(const CUnit* unit, const icon::CIconData* icon, bool useDefaultIcon, const float dist, CVertexArray* va) const
+void CUnitDrawerLegacy::DrawIconScreenArray(const CUnit* unit, const icon::CIconData* icon, bool useDefaultIcon, const float dist, TypedRenderBuffer<VA_TYPE_2dTC>& rb) const
 {
 	// iconUnits should not never contain void-space units, see UpdateUnitIconState
 	assert(!unit->IsInVoid());
@@ -791,7 +805,7 @@ void CUnitDrawerLegacy::DrawIconScreenArray(const CUnit* unit, const icon::CIcon
 		return; // don't try to draw outside the screen
 
 	// Draw the icon.
-	icon->DrawArray(va, x0, y0, x1, y1, color);
+	icon->DrawArray(rb, x0, y0, x1, y1, color);
 }
 
 
@@ -1134,75 +1148,70 @@ bool CUnitDrawerLegacy::ShowUnitBuildSquare(const BuildInfo& buildInfo, const st
 		&commands
 	);
 
-	if (canBuild) {
-		glColor4f(0.0f, 0.9f, 0.0f, 0.7f);
-	}
-	else {
-		glColor4f(0.9f, 0.8f, 0.0f, 0.7f);
-	}
+	SColor col = canBuild ? SColor(0.0f, 0.9f, 0.0f, 0.7f) : SColor(0.9f, 0.8f, 0.0f, 0.7f);
 
-	CVertexArray* va = GetVertexArray();
-	va->Initialize();
-	va->EnlargeArrays(buildableSquares.size() * 4, 0, VA_SIZE_0);
+	auto& rb = RenderBuffer::GetTypedRenderBuffer<VA_TYPE_C>();
+	auto& sh = rb.GetShader();
+	sh.Enable();
 
 	for (uint32_t i = 0; i < buildableSquares.size(); i++) {
-		va->AddVertexQ0(buildableSquares[i]);
-		va->AddVertexQ0(buildableSquares[i] + float3(SQUARE_SIZE, 0, 0));
-		va->AddVertexQ0(buildableSquares[i] + float3(SQUARE_SIZE, 0, SQUARE_SIZE));
-		va->AddVertexQ0(buildableSquares[i] + float3(0, 0, SQUARE_SIZE));
+		rb.AddQuadLines(
+			{ buildableSquares[i]                                      , col },
+			{ buildableSquares[i] + float3(SQUARE_SIZE, 0, 0          ), col },
+			{ buildableSquares[i] + float3(SQUARE_SIZE, 0, SQUARE_SIZE), col },
+			{ buildableSquares[i] + float3(0          , 0, SQUARE_SIZE), col }
+		);
 	}
-	va->DrawArray0(GL_QUADS);
 
-
-	glColor4f(0.9f, 0.8f, 0.0f, 0.7f);
-	va = GetVertexArray();
-	va->Initialize();
-	va->EnlargeArrays(featureSquares.size() * 4, 0, VA_SIZE_0);
+	col = SColor(0.9f, 0.8f, 0.0f, 0.7f);
 
 	for (uint32_t i = 0; i < featureSquares.size(); i++) {
-		va->AddVertexQ0(featureSquares[i]);
-		va->AddVertexQ0(featureSquares[i] + float3(SQUARE_SIZE, 0, 0));
-		va->AddVertexQ0(featureSquares[i] + float3(SQUARE_SIZE, 0, SQUARE_SIZE));
-		va->AddVertexQ0(featureSquares[i] + float3(0, 0, SQUARE_SIZE));
+		rb.AddQuadLines(
+			{ featureSquares[i]                                      , col },
+			{ featureSquares[i] + float3(SQUARE_SIZE, 0, 0          ), col },
+			{ featureSquares[i] + float3(SQUARE_SIZE, 0, SQUARE_SIZE), col },
+			{ featureSquares[i] + float3(0          , 0, SQUARE_SIZE), col }
+		);
 	}
-	va->DrawArray0(GL_QUADS);
 
-
-	glColor4f(0.9f, 0.0f, 0.0f, 0.7f);
-	va = GetVertexArray();
-	va->Initialize();
-	va->EnlargeArrays(illegalSquares.size() * 4, 0, VA_SIZE_0);
+	col = SColor(0.9f, 0.0f, 0.0f, 0.7f);
 
 	for (uint32_t i = 0; i < illegalSquares.size(); i++) {
-		va->AddVertexQ0(illegalSquares[i]);
-		va->AddVertexQ0(illegalSquares[i] + float3(SQUARE_SIZE, 0, 0));
-		va->AddVertexQ0(illegalSquares[i] + float3(SQUARE_SIZE, 0, SQUARE_SIZE));
-		va->AddVertexQ0(illegalSquares[i] + float3(0, 0, SQUARE_SIZE));
+		rb.AddQuadLines(
+			{ illegalSquares[i]                                      , col },
+			{ illegalSquares[i] + float3(SQUARE_SIZE, 0, 0          ), col },
+			{ illegalSquares[i] + float3(SQUARE_SIZE, 0, SQUARE_SIZE), col },
+			{ illegalSquares[i] + float3(0          , 0, SQUARE_SIZE), col }
+		);
 	}
-	va->DrawArray0(GL_QUADS);
-
+	rb.DrawElements(GL_LINES);
 
 	if (h < 0.0f) {
 		const unsigned char s[4] = { 0,   0, 255, 128 }; // start color
 		const unsigned char e[4] = { 0, 128, 255, 255 }; // end color
 
-		va = GetVertexArray();
-		va->Initialize();
-		va->EnlargeArrays(8, 0, VA_SIZE_C);
-		va->AddVertexQC(float3(x1, h, z1), s); va->AddVertexQC(float3(x1, 0.f, z1), e);
-		va->AddVertexQC(float3(x1, h, z2), s); va->AddVertexQC(float3(x1, 0.f, z2), e);
-		va->AddVertexQC(float3(x2, h, z2), s); va->AddVertexQC(float3(x2, 0.f, z2), e);
-		va->AddVertexQC(float3(x2, h, z1), s); va->AddVertexQC(float3(x2, 0.f, z1), e);
-		va->DrawArrayC(GL_LINES);
+		rb.AddVertices({
+			{float3(x1, h   , z1), s},
+			{float3(x1, 0.0f, z1), e},
+			{float3(x1, h   , z2), s},
+			{float3(x1, 0.0f, z2), e},
+			{float3(x2, h   , z2), s},
+			{float3(x2, 0.0f, z2), e},
+			{float3(x2, h   , z1), s},
+			{float3(x2, 0.0f, z1), e}
+		});
+		rb.DrawArrays(GL_LINES);
 
-		va = GetVertexArray();
-		va->Initialize();
-		va->AddVertexQC(float3(x1, 0.0f, z1), e);
-		va->AddVertexQC(float3(x1, 0.0f, z2), e);
-		va->AddVertexQC(float3(x2, 0.0f, z2), e);
-		va->AddVertexQC(float3(x2, 0.0f, z1), e);
-		va->DrawArrayC(GL_LINE_LOOP);
+		rb.AddVertices({
+			{float3(x1, 0.0f, z1), e},
+			{float3(x1, 0.0f, z2), e},
+			{float3(x2, 0.0f, z2), e},
+			{float3(x2, 0.0f, z1), e}
+		});
+		rb.DrawArrays(GL_LINE_LOOP);
 	}
+
+	sh.Disable();
 
 	glEnable(GL_DEPTH_TEST);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
