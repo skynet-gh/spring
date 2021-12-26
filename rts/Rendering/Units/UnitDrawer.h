@@ -182,10 +182,10 @@ protected:
 	void PopIndividualOpaqueState(const S3DModel* model, int teamID, bool deferredPass) const;
 	void PopIndividualAlphaState(const S3DModel* model, int teamID, bool deferredPass) const;
 
-	void DrawUnitMiniMapIcon(const CUnit* unit, TypedRenderBuffer<VA_TYPE_2dTC>& rb) const;
+	void DrawUnitMiniMapIcon(const CUnit* unit, TypedRenderBuffer<VA_TYPE_2DTC>& rb) const;
 
 	static void DrawIcon(CUnit* unit, bool useDefaultIcon);
-	void DrawIconScreenArray(const CUnit* unit, const icon::CIconData* icon, bool useDefaultIcon, const float dist, TypedRenderBuffer<VA_TYPE_2dTC>& rb) const;
+	void DrawIconScreenArray(const CUnit* unit, const icon::CIconData* icon, bool useDefaultIcon, const float dist, TypedRenderBuffer<VA_TYPE_2DTC>& rb) const;
 protected:
 
 };

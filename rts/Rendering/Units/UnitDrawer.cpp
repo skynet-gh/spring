@@ -285,7 +285,7 @@ void CUnitDrawerLegacy::DrawUnitTrans(const CUnit* unit, uint32_t preList, uint3
 
 void CUnitDrawerLegacy::DrawUnitMiniMapIcons() const
 {
-	auto& rb = RenderBuffer::GetTypedRenderBuffer<VA_TYPE_2dTC>();
+	auto& rb = RenderBuffer::GetTypedRenderBuffer<VA_TYPE_2DTC>();
 	auto& sh = rb.GetShader();
 
 	for (const auto& [icon, units] : modelDrawerData->GetUnitsByIcon()) {
@@ -346,7 +346,7 @@ void CUnitDrawerLegacy::DrawUnitIconsScreen() const
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	auto& rb = RenderBuffer::GetTypedRenderBuffer<VA_TYPE_2dTC>();
+	auto& rb = RenderBuffer::GetTypedRenderBuffer<VA_TYPE_2DTC>();
 	auto& sh = rb.GetShader();
 
 	sh.Enable();
@@ -657,7 +657,7 @@ void CUnitDrawerLegacy::DrawAlphaAIUnitBorder(const CUnitDrawerData::TempDrawUni
 	glColor4f(1.0f, 1.0f, 1.0f, IModelDrawerState::alphaValues.x);
 }
 
-void CUnitDrawerLegacy::DrawUnitMiniMapIcon(const CUnit* unit, TypedRenderBuffer<VA_TYPE_2dTC>& rb) const
+void CUnitDrawerLegacy::DrawUnitMiniMapIcon(const CUnit* unit, TypedRenderBuffer<VA_TYPE_2DTC>& rb) const
 {
 	if (unit->noMinimap)
 		return;
@@ -761,7 +761,7 @@ void CUnitDrawerLegacy::DrawIcon(CUnit* unit, bool useDefaultIcon)
 	iconData->Draw(vnn, vpn, vnp, vpp);
 }
 
-void CUnitDrawerLegacy::DrawIconScreenArray(const CUnit* unit, const icon::CIconData* icon, bool useDefaultIcon, const float dist, TypedRenderBuffer<VA_TYPE_2dTC>& rb) const
+void CUnitDrawerLegacy::DrawIconScreenArray(const CUnit* unit, const icon::CIconData* icon, bool useDefaultIcon, const float dist, TypedRenderBuffer<VA_TYPE_2DTC>& rb) const
 {
 	// iconUnits should not never contain void-space units, see UpdateUnitIconState
 	assert(!unit->IsInVoid());

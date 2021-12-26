@@ -345,7 +345,7 @@ void CIconData::BindTexture() const
 
 
 
-void CIconData::DrawArray(TypedRenderBuffer<VA_TYPE_2dTC>& rb, float x0, float y0, float x1, float y1, const unsigned char* c) const
+void CIconData::DrawArray(TypedRenderBuffer<VA_TYPE_2DTC>& rb, float x0, float y0, float x1, float y1, const unsigned char* c) const
 {
 	//triangle 1 {tl, tr, bl}
 	//triangle 2 {bl, tr, br}
